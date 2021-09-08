@@ -86,7 +86,7 @@ static Result getmeminfo(Gecko::Context& ctx) {
     u32 count = 0;
     MemoryInfo info = {};
     addr = 0;
-    requestCount = 15000;
+    requestCount = 100000;
     m_heap_start = 0;
     m_main_start = 0;
     u32 mod = 0;
@@ -94,7 +94,7 @@ static Result getmeminfo(Gecko::Context& ctx) {
         if (dmnt) rc = dmntchtQueryCheatProcessMemory(&info, addr);
         else rc =ctx.dbg.query(&info, addr);
         // printf("info.addr %lx ,info.size %lx ,info.type %x\n",info.addr,info.size,info.type );
-        if (info.type == MemType_Heap){
+        if ((info.type == MemType_Heap)||(info.type == MemType_MappedMemory)||(info.type == MemType_ModuleCodeMutable)){
             if (m_heap_start == 0) m_heap_start = info.addr;
             m_heap_end = info.addr + info.size;
         }
