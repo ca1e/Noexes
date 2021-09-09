@@ -352,6 +352,14 @@ static Result _current_pid(Gecko::Context& ctx){
         rc = dmntchtGetCheatProcessMetadata(&cht);
         pid = cht.process_id;
     } else rc = pmdmntGetApplicationProcessId(&pid);
+    if (rc != 0) {
+        rc = nsdevInitialize();
+        if (rc == 0) {
+            rc = nsdevGetRunningApplicationProcessIdForDevelop(&pid);
+            printf("getting pid from nsdev pid=%ld",pid);
+            nsdevExit();
+        }
+    }
     WRITE_CHECKED(ctx, pid);
     // printf("pid = %lx\n",pid);
     return rc;
@@ -438,6 +446,7 @@ static Result _set_breakpoint(Gecko::Context& ctx){
     READ_CHECKED(ctx, id);
     READ_CHECKED(ctx, addr);
     READ_CHECKED(ctx, flags);
+    printf("set breakpoint id=%d, addr=%16lx, flags=%16lx\n ",id, addr, flags);
     return ctx.dbg.setBreakpoint(id, flags, addr);
 }
 

@@ -37,15 +37,24 @@ void __libnx_initheap(void) {
 
 void __appInit(void) {
 	Result rc;
+
+    if (hosversionGet() == 0) {
+        rc = setsysInitialize();
+        if (R_SUCCEEDED(rc)) {
+            SetSysFirmwareVersion fw;
+            rc = setsysGetFirmwareVersion(&fw);
+            if (R_SUCCEEDED(rc))
+                hosversionSet((BIT(31)) | (MAKEHOSVERSION(fw.major, fw.minor, fw.micro)));
+            setsysExit();
+        }
+    }
+    // SetSysFirmwareVersion hosversion;
+    // rc = setsysGetFirmwareVersion(&hosversion);
+    // hosversionSet(hosversion.major);
 	/* Initialize services */
 	rc = smInitialize();
 	if (R_FAILED(rc)) {
 		fatalThrow(MAKERESULT(Module_Libnx, LibnxError_InitFail_SM));
-	}
-
-	rc = ldrDmntInitialize();
-	if (R_FAILED(rc)) {
-		fatalThrow(MAKERESULT(Module_Libnx, LibnxError_AlreadyInitialized));
 	}
 
 	rc = pmdmntInitialize();
@@ -53,16 +62,24 @@ void __appInit(void) {
 		fatalThrow(MAKERESULT(Module_Libnx, LibnxError_NotInitialized));
 	}
 
-	rc = socketInitialize(socketGetDefaultInitConfig());
-	if (R_FAILED(rc)) {
-		fatalThrow(MAKERESULT(Module_TCPGecko, TCPGeckoError_initfail));
-	}
-	
 	rc= pminfoInitialize();
 	if (R_FAILED(rc)) {
 		fatalThrow(rc);
 	}
     
+	rc = ldrDmntInitialize();
+	if (R_FAILED(rc)) {
+		fatalThrow(MAKERESULT(Module_Libnx, LibnxError_AlreadyInitialized));
+	}
+	// rc = nsdevInitialize();
+	// if (R_FAILED(rc)) {
+	// 	// fatalThrow(MAKERESULT(Module_Libnx, LibnxError_AlreadyInitialized));
+	// }
+	rc = socketInitialize(socketGetDefaultInitConfig());
+	if (R_FAILED(rc)) {
+		fatalThrow(MAKERESULT(Module_TCPGecko, TCPGeckoError_initfail));
+	}
+	
     rc = fsInitialize();
     if (R_FAILED(rc)) {
         fatalThrow(MAKERESULT(Module_Libnx, LibnxError_InitFail_FS));
@@ -87,6 +104,7 @@ void __appExit(void) {
     socketExit();
     pmdmntExit();
     ldrDmntExit();
+    // nsdevExit();
     dmntchtExit();
 	smExit();
 }
@@ -125,6 +143,11 @@ static Result _eventCallback(Gecko::DebugEvent event){
             printf("ThreadAttachEvent(thread_id:%08lx, tls_pointer:%08lx, entry_point:%08lx)\r\n", tad.thread_id, tad.tls_pointer, tad.entry_point);
         }
         break;
+        case 4: 
+        {
+            Gecko::ExceptionData texcept = event.data.exception;
+            printf("ExceptionEvent(fault_reg:%16lx, type:%16lx, per_exception:%16lx)\r\n",texcept.fault_reg, texcept.type, texcept.per_exception);
+        } break;
         default:
         printf("UnknownEvent(type:%d Data:", event.event_type);
         for(u32 i = 0; i < DEBUG_DATA_SIZE; i++){
