@@ -36,6 +36,18 @@ void __libnx_initheap(void) {
 
 void __appInit(void) {
 	Result rc;
+    
+    if (hosversionGet() == 0) {
+        rc = setsysInitialize();
+        if (R_SUCCEEDED(rc)) {
+            SetSysFirmwareVersion fw;
+            rc = setsysGetFirmwareVersion(&fw);
+            if (R_SUCCEEDED(rc))
+                hosversionSet((BIT(31)) | (MAKEHOSVERSION(fw.major, fw.minor, fw.micro)));
+            setsysExit();
+        }
+    }
+
 	/* Initialize services */
 	rc = smInitialize();
 	if (R_FAILED(rc)) {
