@@ -545,7 +545,7 @@ public class Debugger implements Commands, Closeable {
             case SHORT:
                 return peek16(addr);
             case INT:
-                return peek32(addr);
+                return peek32(addr) & 0xffffffffL;
             case LONG:
                 return peek64(addr);
         }
