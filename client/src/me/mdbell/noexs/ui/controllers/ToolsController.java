@@ -175,7 +175,27 @@ public class ToolsController implements IController {
             MainController.showMessage("You are not currently connected.", Alert.AlertType.WARNING);
         }
     }
+    public void auto_attach() {
+        Debugger conn = mc.getDebugger();
+        if (conn.connected()) {
+            long selectedPid = conn.getCurrentPid();
 
+            if (selectedPid != 0) {
+                Result attached = conn.attach(selectedPid);
+                if (attached.failed()) {
+                    MainController.showMessage("Attach failed.", attached, Alert.AlertType.ERROR);
+                } else {
+                    mc.setStatus("Attached to process");
+                    mc.setTitle("Attached to: 0x" + HexUtils.formatTitleId(conn.getTitleId(selectedPid)));
+                    mc.memory().populateMemory();
+                }
+            } else {
+                MainController.showMessage("Invalid pid selected.", Alert.AlertType.ERROR);
+            }
+        } else {
+            MainController.showMessage("You are not currently connected.", Alert.AlertType.WARNING);
+        }
+    }
     public void ReattachProcess() {
         Debugger conn = mc.getDebugger();
         if (conn.connected()) {
