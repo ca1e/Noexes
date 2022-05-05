@@ -38,7 +38,7 @@ void __libnx_initheap(void) {
 void __appInit(void) {
 	Result rc;
 
-    if (hosversionGet() == 0) {
+    
         rc = setsysInitialize();
         if (R_SUCCEEDED(rc)) {
             SetSysFirmwareVersion fw;
@@ -47,7 +47,10 @@ void __appInit(void) {
                 hosversionSet((BIT(31)) | (MAKEHOSVERSION(fw.major, fw.minor, fw.micro)));
             setsysExit();
         }
-    }
+        if (rc!=0) {
+            printf("version set failed rc=%d",rc);
+            hosversionSet(6);
+        };
     // SetSysFirmwareVersion hosversion;
     // rc = setsysGetFirmwareVersion(&hosversion);
     // hosversionSet(hosversion.major);
@@ -90,7 +93,7 @@ void __appInit(void) {
         fatalThrow(rc); // maybe set a variable like noSd or something? It doesn't HAVE to log.
     }
 
-    rc = dmntchtInitialize();
+    // rc = dmntchtInitialize();
     // if (R_FAILED(rc)) {
     //     fatalThrow(rc); // maybe set a variable like noSd or something? It doesn't HAVE to log.
     // }

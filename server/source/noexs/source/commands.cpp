@@ -63,6 +63,7 @@ static u8 outbuffer[GECKO_BUFFER_SIZE * 9 / 8];
 static FILE* g_memdumpFile = NULL;
 // static FILE* g_bookmarkFile = NULL;
 #define HEADERSIZE 135
+#define HEADERSIZE2 424
 enum t_searchsize {
     _8, _16, _32, _64 
 };
@@ -264,7 +265,7 @@ static Result _attach(Gecko::Context& ctx){
         ctx.status = Gecko::Status::Paused;
     } else {
         if (ctx.dbg.attached()) {    
-            // dmntchtInitialize();
+            dmntchtInitialize();
             DmntCheatProcessMetadata cht;
             dmntchtGetCheatProcessMetadata(&cht);
             if (cht.process_id == pid) {
@@ -276,7 +277,7 @@ static Result _attach(Gecko::Context& ctx){
                 }
             } 
             else {
-                // dmntchtExit();
+                dmntchtExit();
             }
         }
     }
@@ -723,36 +724,78 @@ static Result _dump_ptr(Gecko::Context& ctx){
 static Result _getbookmark(Gecko::Context& ctx){
     // printf("_getbookmark\n");
     u8 cont = 1;
-    if (access("/switch/EdiZon/BMDump.dat", F_OK) != 0) {
+    if ((access("/switch/EdiZon/BMDump.dat", F_OK) != 0) && (access("/switch/Breeze/cheats/BMDump.dat", F_OK) != 0)) {
         WRITE_CHECKED(ctx, 0)
         READ_CHECKED(ctx, cont);
         return FILE_ACCESS_ERROR;
     }
-    g_memdumpFile = fopen("/switch/EdiZon/BMDump.dat", "r+b");
-    u32 size, len, index;
+    if (access("/switch/EdiZon/BMDump.dat", F_OK) == 0) {
+        g_memdumpFile = fopen("/switch/EdiZon/BMDump.dat", "r+b");
 
-    fseek(g_memdumpFile, 0, SEEK_END);
-    size = (ftell(g_memdumpFile) - HEADERSIZE);
-    printf("size = %d\n",size);
+        u32 size, len, index;
 
-    index = 0;
-    while (size > 0) {
-        len = (size < GECKO_BUFFER_SIZE) ? size : GECKO_BUFFER_SIZE;
-        fseek(g_memdumpFile, HEADERSIZE + index, SEEK_SET);
-        fread(outbuffer + outbuffer_offset, 1, len, g_memdumpFile);
-        // compress option
-        s32 count = LZ_Compress(outbuffer + outbuffer_offset, outbuffer, len);
-        //
-        printf("count = %d\n", count);
-        WRITE_CHECKED(ctx, count);
-        WRITE_BUFFER_CHECKED(ctx, outbuffer, count);
-        READ_CHECKED(ctx,cont); if (!cont) {WRITE_CHECKED(ctx, 0);READ_CHECKED(ctx, cont);fclose(g_memdumpFile); return USER_ABORT;}
-        index += len;
-        size -= len;
+        fseek(g_memdumpFile, 0, SEEK_END);
+        size = (ftell(g_memdumpFile) - HEADERSIZE);
+        printf("size = %d\n", size);
+
+        index = 0;
+        while (size > 0) {
+            len = (size < GECKO_BUFFER_SIZE) ? size : GECKO_BUFFER_SIZE;
+            fseek(g_memdumpFile, HEADERSIZE + index, SEEK_SET);
+            fread(outbuffer + outbuffer_offset, 1, len, g_memdumpFile);
+            // compress option
+            s32 count = LZ_Compress(outbuffer + outbuffer_offset, outbuffer, len);
+            //
+            printf("count = %d\n", count);
+            WRITE_CHECKED(ctx, count);
+            WRITE_BUFFER_CHECKED(ctx, outbuffer, count);
+            READ_CHECKED(ctx, cont);
+            if (!cont) {
+                WRITE_CHECKED(ctx, 0);
+                READ_CHECKED(ctx, cont);
+                fclose(g_memdumpFile);
+                return USER_ABORT;
+            }
+            index += len;
+            size -= len;
+        }
+        fclose(g_memdumpFile);
     }
+    if (access("/switch/Breeze/cheats/BMDump.dat", F_OK) == 0) {
+        g_memdumpFile = fopen("/switch/Breeze/cheats/BMDump.dat", "r+b");
+
+        u32 size, len, index;
+
+        fseek(g_memdumpFile, 0, SEEK_END);
+        size = (ftell(g_memdumpFile) - HEADERSIZE2);
+        printf("size = %d\n", size);
+
+        index = 0;
+        while (size > 0) {
+            len = (size < GECKO_BUFFER_SIZE) ? size : GECKO_BUFFER_SIZE;
+            fseek(g_memdumpFile, HEADERSIZE2 + index, SEEK_SET);
+            fread(outbuffer + outbuffer_offset, 1, len, g_memdumpFile);
+            // compress option
+            s32 count = LZ_Compress(outbuffer + outbuffer_offset, outbuffer, len);
+            //
+            printf("count = %d\n", count);
+            WRITE_CHECKED(ctx, count);
+            WRITE_BUFFER_CHECKED(ctx, outbuffer, count);
+            READ_CHECKED(ctx, cont);
+            if (!cont) {
+                WRITE_CHECKED(ctx, 0);
+                READ_CHECKED(ctx, cont);
+                fclose(g_memdumpFile);
+                return USER_ABORT;
+            }
+            index += len;
+            size -= len;
+        }
+        fclose(g_memdumpFile);
+    }
+
     WRITE_CHECKED(ctx, 0);
     READ_CHECKED(ctx, cont);
-    fclose(g_memdumpFile);
     return 0;
 }
 //0x1C
